@@ -402,7 +402,10 @@ class AllureReporter {
       }
     } else if (requestError) {
       const errorMsg = this.escape(requestError);
-      this.endTest(this.currentRunningItem?.allureTest, Status.FAILED, { message: errorMsg });
+      
+      if (this.currentRunningItem) {
+        this.endTest(this.currentRunningItem?.allureTest, Status.FAILED, { message: errorMsg });
+      }
     } else if (this.currentRunningItem) {
       this.endTest(this.currentRunningItem?.allureTest, Status.PASSED);
     }
@@ -454,7 +457,7 @@ class AllureReporter {
     };
 
     if (err) {
-      if(this.currentRunningItem){
+      if (this.currentRunningItem) {
         this.currentRunningItem.pmItem.passed = false;
         this.currentRunningItem.pmItem.requestError = err.message;
       }
