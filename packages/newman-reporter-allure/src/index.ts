@@ -404,7 +404,7 @@ class AllureReporter {
       const errorMsg = this.escape(requestError);
 
       if (this.currentRunningItem) {
-        this.endTest(this.currentRunningItem?.allureTest, Status.FAILED, { message: errorMsg });
+        this.endTest(this.currentRunningItem?.allureTest, Status.BROKEN, { message: errorMsg });
       }
     } else if (this.currentRunningItem) {
       this.endTest(this.currentRunningItem?.allureTest, Status.PASSED);
