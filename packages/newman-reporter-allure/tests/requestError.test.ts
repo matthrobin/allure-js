@@ -37,7 +37,7 @@ test("Mark test as failed when a request error occurs", async () => {
       },
     ],
   });
-  expect(result.status).toBe(Status.FAILED);
+  expect(result.status).toBe(Status.BROKEN);
   expect(result.parameters).toEqual([
     { name: "Request", value: "GET - http://example.com/timeout" },
   ]);
