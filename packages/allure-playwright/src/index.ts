@@ -33,7 +33,6 @@ import {
   AllureStep,
   AllureTest,
   Category,
-  ExecutableItem,
   ExecutableItemWrapper,
   ImageDiffAttachment,
   LabelName,
@@ -84,8 +83,8 @@ class AllureReporter implements Reporter {
 
   private processedDiffs: string[] = [];
 
-  constructor(options: AllureReporterOptions = { suiteTitle: true, detail: true }) {
-    this.options = options;
+  constructor(options: AllureReporterOptions) {
+    this.options = { suiteTitle: true, detail: true, ...options };
   }
 
   onBegin(config: FullConfig, suite: Suite): void {
@@ -109,18 +108,10 @@ class AllureReporter implements Reporter {
 
     titleMetadata.labels.forEach((label) => allureTest.addLabel(label.name, label.value));
 
-    const [, projectSuiteTitle, fileSuiteTitle, ...suiteTitles] = suite.titlePath();
+    // root > project > file path > test.describe...
+    const [, , , ...suiteTitles] = suite.titlePath();
     allureTest.addLabel("titlePath", suite.titlePath().join(" > "));
 
-    if (projectSuiteTitle) {
-      allureTest.addLabel(LabelName.PARENT_SUITE, projectSuiteTitle);
-    }
-    if (this.options.suiteTitle && fileSuiteTitle) {
-      allureTest.addLabel(LabelName.SUITE, fileSuiteTitle);
-    }
-    if (suiteTitles.length > 0) {
-      allureTest.addLabel(LabelName.SUB_SUITE, suiteTitles.join(" > "));
-    }
     const project = suite.project()!;
     if (project?.name) {
       allureTest.parameter("Project", project.name);
@@ -148,6 +139,10 @@ class AllureReporter implements Reporter {
       return;
     }
     if (!this.options.detail && step.category !== "test.step") {
+      return;
+    }
+    // ignore attach steps since attachments are already in the report
+    if (step.category === "attach") {
       return;
     }
     const allureStep = this.ensureAllureStepCreated(step, allureTest);
@@ -214,6 +209,20 @@ class AllureReporter implements Reporter {
         "text/plain",
         runtime.writeAttachment(stripAscii(result.stderr.join("")), "text/plain"),
       );
+    }
+
+    // only apply default suites if not set by user
+    const [, projectSuiteTitle, fileSuiteTitle, ...suiteTitles] = test.parent.titlePath();
+    if (projectSuiteTitle && !hasLabel(allureTest, LabelName.PARENT_SUITE)) {
+      allureTest.addLabel(LabelName.PARENT_SUITE, projectSuiteTitle);
+    }
+
+    if (this.options.suiteTitle && fileSuiteTitle && !hasLabel(allureTest, LabelName.SUITE)) {
+      allureTest.addLabel(LabelName.SUITE, fileSuiteTitle);
+    }
+
+    if (suiteTitles.length > 0 && !hasLabel(allureTest, LabelName.SUB_SUITE)) {
+      allureTest.addLabel(LabelName.SUB_SUITE, suiteTitles.join(" > "));
     }
 
     allureTest.calculateHistoryId();
@@ -431,6 +440,14 @@ const getStatusDetails = (error: TestError): StatusDetails => {
     message,
     trace,
   };
+};
+
+const hasLabel = (test: AllureTest, labelName: LabelName): boolean => {
+  const wrappedItem = test.wrappedItem;
+  if ("labels" in wrappedItem) {
+    return wrappedItem.labels?.find((l) => l.name === labelName) !== undefined;
+  }
+  return false;
 };
 
 export * from "./helpers";
