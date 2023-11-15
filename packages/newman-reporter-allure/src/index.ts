@@ -466,7 +466,6 @@ class AllureReporter {
 
     const respStream = args.response.stream;
     const respBody = (respStream && Buffer.from(respStream).toString()) || "";
-
     this.runningItems[this.runningItems.length - 1].pmItem.responseData = {
       status: args.response.status,
       code: args.response.code,
